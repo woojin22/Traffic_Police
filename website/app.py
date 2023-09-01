@@ -5,6 +5,7 @@ import streamlit.components.v1 as components
 from st_on_hover_tabs import on_hover_tabs
 from streamlit_option_menu import option_menu
 from pathlib import Path
+import PIL
 from PIL import Image
 import numpy as np
 import tempfile
@@ -13,6 +14,7 @@ import wget
 import glob
 import time
 import av
+from ultralytics import YOLO
 
 # ======================================== 웹 사이트 기능
 cctv = {
@@ -51,8 +53,15 @@ def get_frames_from_m3u8(url):
 yolov5_model_path = 'models/yolov5_all800_best.pt'
 yolov8_model_path = 'models/val_epoch100.pt'
 
+
+confidence = float(st.slider(
+        "Select Model Confidence", 25, 100, 40)) / 100
+
 # ========================================
-st.markdown("<h1 style='text-align: center;'>Traffic Police</h1>", unsafe_allow_html=True)
+st.markdown('''<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+            <h1 style='text-align: center;'>Traffic Police</h1>''', unsafe_allow_html=True)
 
 
 selected2 = option_menu(None, ["Home", "Tracking","Dashboard", "info"], 
@@ -61,6 +70,8 @@ selected2 = option_menu(None, ["Home", "Tracking","Dashboard", "info"],
 
 
 if selected2 == "Home":
+    st.subheader('Real-time traffic ovject detection using YoLo model')
+
     # 해당 유튜브 영상의 임베드 링크
     youtube_link = "https://www.youtube.com/embed/cHDLvp_NPOk"
     # Streamlit에 임베드
@@ -89,14 +100,32 @@ if selected2 == "Home":
     # video_bytes = video_file.read()
     # st.video(video_bytes)
 
-    st.subheader('YOLO (You Only Look Once) :desktop_computer:')
     st.markdown("""
-    <p>
-        실시간 객체 탐지를 위한 혁신적인 딥 러닝 기반의 알고리즘입니다. 
-        기존의 많은 객체 탐지 알고리즘들이 이미지 내의 여러 영역을 반복적으로 검사하는 반면, 
-        YOLO는 이미지를 한 번만 보고 여러 객체를 탐지합니다. 이 접근 방식 덕분에 YOLO는 빠른 속도와 높은 정확도를 동시에 
-        제공하며 실시간 탐지 작업에 매우 적합합니다.
-    </p>
+                <h3> 프로젝트 설명 </h3>
+                <p> 최근 개인형 이동장치의 사용향이 증가함에 따라 교통법규 위반으로 인한 다수의 사고가 발생하고 있다.
+                그 반면 위법 행위 적발 수치는 낮은 편이다.
+                이에 'A' 기간은 교통법규 위반 탐지 모델을 생성하여 적방 수치를 높임으로써 사고를 방지하고, 시민들이 보다
+                안전하게 생활할 수 있는 환경을 조성하고자 한다.<br></p>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+                <h3> 팀 목표 </h3>
+                <p> 실시간 CCTV로 딥러닝 모델을 이용하여 ovject detection 실시간하여 해당 지역의 위법 상황 지표를
+                만들 수 있는 데이터 수집 모델을 제작<br></p>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+                <h3> Object Detection </h3>
+                <p> Object Detection 객체 인식은 이미지 또는 비디오에서 개체를 식별하고 찾는 것과 관련된 컴퓨터 비전 작업이다.
+                감지된 물제는 사람, 자동차, 건물, 동물일 수 있다. 기존 객체 인식은 다양한 접근 방식으로 시도되면서 데이터 제한 및 모델링 문제를 해결하려고 했습니다.
+                하지만 단일 알고리즘 실행을 통해 객체를 감지하는 것이 어려웠던 차에, YOLO 알고리즘이 등장하게 되었죠.<br>
+                 </p>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+                <h3> You Only Look Once </h3>
+                <p> YOLO(You Only Look Once)는 최첨단 실시간 Object Detection 시스템입니다. 
+                기존의 모델보다 빠르고 정확한 데이터 처리 속도를 자랑하며 화제를 몰고 왔죠. YOLO는 물체 감지와 객체 인식에 대한 딥러닝 기반 접근 방식입니다.
+                <br>
+                간단하게 말하자면, YOLO는 입력된 이미지를 일정 분할로 그리드한 다음, 신경망을 통과하여 바운딩 박스와 클래스 예측을 생성하여 최종 감지 출력을 결정합니다. 실제 이미지 및 비디오에서 테스트하기 전에 먼저 전체 데이터 세트에 대해 여러 인스턴스를 학습하죠.
+                 </p>
     """, unsafe_allow_html=True)
 
 
@@ -126,16 +155,30 @@ elif selected2 == "Tracking":
                 placeholder = st.empty()
                 for frame in get_frames_from_m3u8(st.session_state.video_url):
                     if stop_button:
+                        st.session_state.clear()
                         break
                     results = model(frame)
                     labeled_frame = np.array(results.render()[0])
                     placeholder.image(labeled_frame, channels="BGR", use_column_width=True)
                     
-            if 'stop_button' in globals() and stop_button:
-                st.session_state.clear()
+
             # YoLo v8
             if st.sidebar.button("YoLo v8 RUN", key="YoLo v8"):
-                model = load_model(yolov8_model_path, device_option)
+                stop_button = st.sidebar.button("STOP", key="btn_yolo_STOP")
+                model2 = YOLO(yolov8_model_path, device_option)
+                placeholder2 = st.empty()
+                for frame in get_frames_from_m3u8(st.session_state.video_url):
+                    if stop_button:
+                        st.session_state.clear()
+                        break
+                    res = model2.predict(frame,
+                        conf=confidence)
+                    boxes = res[0].boxes
+                    res_plotted = res[0].plot()[:, :, ::-1]
+                    placeholder2.image(res_plotted, channels="BGR", use_column_width=True)
+
+            if 'stop_button' in globals() and stop_button:
+                st.session_state.clear()
 
             while True:
                 ret, frame = video_capture.read()

@@ -1,0 +1,10 @@
+cv2
+streamlit==1.26.0
+st_on_hover_tabs
+streamlit_option_menu
+PIL
+numpy==1.24.4
+torch==2.0.1
+wget==3.2
+av==10.0.0
+ultralytics==8.0.166
