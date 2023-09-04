@@ -99,25 +99,6 @@ def line(a, b, c, d, image):
         x2, y2 = start_point[0], height - 1
     return x2, y2
 
-def extraction(image):
-    x = [[535, 71], [526, 71], [517, 71]]
-    a = []
-    for i in range(len(x)):
-        center_coordinates = (x[i][0], x[i][1])
-        mask = np.zeros(image.shape[:2], dtype="uint8")
-        cv2.circle(mask, center_coordinates, 4, 255, -1)
-        image = cv2.bitwise_and(image, image, mask=mask)
-        pixels = image[mask == 255]
-        sum_rgb = np.sum(pixels, axis=0)
-        a.append(sum_rgb[i])
-        for j in range(3):
-            if max(a) == a[j]:
-                if j == 1:
-                    signal = 'green'
-                elif j == 2:
-                    signal = 'red'
-    return signal
-
 yolov5_model_path = 'models/yolov5_all800_best.pt'
 yolov8_model_path = 'models/val_epoch100.pt'
 title_image_path = 'static/title.png'
@@ -203,6 +184,7 @@ elif selected2 == "Tracking":
                 for frame in get_frames_from_m3u8(st.session_state.video_url):
                     if stop_button:
                         st.session_state.clear()
+                        st.stop()
                         break
                     
                     id_lst = []
@@ -233,30 +215,27 @@ elif selected2 == "Tracking":
                                             id_lst.append(list(same_id[0][0].keys())[i])
                                 for i in id_lst:
                                     first = same_id[0][0][i]
-                                    second = same_id[segment_frame-1][0][i]
+                                    second = same_id[segment_frame-1][0][i]        
+                                    a1, a3 = line(first[1], first[0], second[1], second[0], annotated_frame)
+                                    a2, a4 = line(first[3], first[0], second[3], second[0], annotated_frame)
                                     if first[1] - second[1] <= 15:
                                         final = [[0, 0], [0, 0], [0, 0], [0, 0]]
                                     elif first[1] < second[1]:
-                                        a1, a3 = line(first[1], first[0], second[1], second[0], annotated_frame)
-                                        a2, a4 = line(first[1], first[2], second[1], second[2], annotated_frame)
-                                        final = [[int(first[0]), int(first[1])], [int(first[2]), int(first[1])], [int(a4), int(a2)], [int(a3), int(a1)]]
+                                        final = [[int(first[0]), int(first[1])], [int(a3), int(a1)], [int(a4), int(a2)], [int(first[0]), int(first[3])]]
                                     elif first[1] > second[1]:
-                                        a1, a3 = line(first[3], first[0], second[3], second[0], annotated_frame)
-                                        a2, a4 = line(first[3], first[2], second[3], second[2], annotated_frame)
-                                        final = [[int(first[3]), int(first[0])], [int(a3), int(a1)], [int(a4), int(a2)], [int(first[3]), int(first[2])]]
-                                    if extraction(annotated_frame) == 'green':
-                                        annotated_frame = apply_alpha_to_color(annotated_frame, np.array(final), (192, 192, 192), 0.3)
-                                        if 23 in bbox_cls:
-                                            point_inside = cv2.pointPolygonTest(np.array(final), [(526, 71)], measureDist=False)
-                                            if point_inside >= 0:
-                                                for i in range(len(results[0].names)):
-                                                    if i != 23 and i != 24:
-                                                        results[0].names[i] = "Normal"
-                                            elif point_inside < 0:
-                                                for i in range(len(results[0].names)):
-                                                    results[0].names[i] = real_results[0][i]
+                                        final = [[int(a3), int(a1)], [int(first[0]), int(first[1])], [int(first[0]), int(first[3])], [int(a4), int(a2)]]
+                                    
+                                    annotated_frame = apply_alpha_to_color(annotated_frame, np.array(final), (192, 192, 192), 0.3)
+                                    if 23 in bbox_cls:
+                                        point_inside = cv2.pointPolygonTest(np.array(final), bbox_xywh[bbox_cls.index(23)][:2], measureDist=False)
+                                        if point_inside >= 0:
+                                            for i in range(len(results[0].names)):
+                                                if i != 23 and i != 24:
+                                                    results[0].names[i] = "Normal"
+                                        elif point_inside < 0:
+                                            for i in range(len(results[0].names)):
+                                                results[0].names[i] = real_results[0][i]
                                 
-                    
                     placeholder.image(annotated_frame, channels="BGR", use_column_width=True)
                     if stop_button:
                         st.session_state.clear()
