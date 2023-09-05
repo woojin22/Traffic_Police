@@ -7,4 +7,5 @@ numpy==1.24.4
 torch==2.0.1
 wget==3.2
 av==10.0.0
-ultralytics==8.0.166
+ultralytics==8.0.163
+lapjv
