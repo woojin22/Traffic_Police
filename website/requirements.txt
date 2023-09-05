@@ -1,4 +1,4 @@
-opencv-python-headless<4.3
+opencv-python-headless==4.5.3
 streamlit==1.26.0
 streamlit-on-Hover-tabs
 streamlit_option_menu
