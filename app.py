@@ -139,6 +139,41 @@ selected2 = option_menu(None, ["Home", "Tracking", "info"],
 
 if selected2 == "Home":
     st.header("개인형 이동장치 위법 탐지 서비스")
+    video_id = "PZlDOew_fgA"
+    embed_link = f"https://www.youtube.com/embed/%7Bvideo_id%7D"
+
+    st.write(f"""
+    <style>
+        .videoWrapper {{
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            padding-top: 25px;
+            height: 0;
+            margin-bottom: 20px;
+        }}
+        .videoWrapper iframe {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }}
+        .section-header {{
+            font-weight: bold;
+            font-size: 24px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }}
+        .section-content {{
+            font-size: 18px;
+            padding: 10px 0;
+            line-height: 1.5;
+        }}
+    </style>
+    <div class="videoWrapper">
+        <iframe src="{embed_link}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown(
     f'<img src="data:image/gif;base64,{data_url}" alt="cat gif" style="width: 100%">',
     unsafe_allow_html=True,)
