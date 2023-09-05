@@ -1,3 +1,8 @@
 libgl1
 cmake
 libssl-dev
+libgtk2.0-dev
+libgl1-mesa-glx
+libtesseract-dev
+libtesseract4
+tesseract-ocr
