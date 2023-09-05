@@ -120,11 +120,7 @@ def generate_counts(id_class):
         'bc_counts': {key: value for key, value in value_counts.items() if 7 <= key <= 14},
         'kb_counts': {key: value for key, value in value_counts.items() if 15 <= key <= 22},
     }
-    
-def display_youtube_video(url, width="100%", height=315):
-    st.write(f'<iframe width="{width}" height="{height}" src="{url}" frameborder="0" allowfullscreen></iframe>', unsafe_allow_html=True)
 
-video_url = 'https://youtu.be/PZlDOew_fgA'
 
 yolov8_model_path = 'models/yolov8_all5000_added.pt'
 title_image_path = 'static/title.png'
@@ -143,7 +139,6 @@ selected2 = option_menu(None, ["Home", "Tracking", "info"],
 
 if selected2 == "Home":
     st.header("개인형 이동장치 위법 탐지 서비스")
-    display_youtube_video(video_url)
     st.markdown(
     f'<img src="data:image/gif;base64,{data_url}" alt="cat gif" style="width: 100%">',
     unsafe_allow_html=True,)
