@@ -174,9 +174,7 @@ if selected2 == "Home":
         <iframe src="{embed_link}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown(
-    f'<img src="data:image/gif;base64,{data_url}" alt="cat gif" style="width: 100%">',
-    unsafe_allow_html=True,)
+
     # 로고나 대표 이미지
     st.subheader("서비스 소개")
     st.write("""
