@@ -1,19 +1,10 @@
-import os
 import cv2
 import streamlit as st
-import streamlit.components.v1 as components
-from st_on_hover_tabs import on_hover_tabs
 from streamlit_option_menu import option_menu
-from pathlib import Path
 import PIL
 from PIL import Image
 import numpy as np
-import tempfile
 import torch
-import wget
-import glob
-import time
-import av
 import copy
 from ultralytics import YOLO
 import base64
@@ -99,6 +90,38 @@ def line(a, b, c, d, image):
         x2, y2 = start_point[0], height - 1
     return x2, y2
 
+def plot_bar_chart(values, counts, title, xlabel, ylabel, window_col):
+    fig, ax = plt.subplots()
+    plt.bar(values, counts)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    window_col.pyplot(fig)
+
+def plot_pie_chart(labels, sizes, title, window_col):
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax.axis('equal')  # Ensures pie is drawn as a circle.
+    plt.title(title)
+    window_col.pyplot(fig)
+
+def generate_counts(id_class):
+    classes = []
+    for class_list in id_class.values():
+        if 0 in class_list and len(class_list) >= 2:
+            classes.extend([x for x in class_list if x != 0])
+        else:
+            classes.extend(class_list)
+
+    value_counts = Counter(classes)
+    
+    return {
+        'mc_counts': {key: value for key, value in value_counts.items() if 0 <= key <= 6},
+        'bc_counts': {key: value for key, value in value_counts.items() if 7 <= key <= 14},
+        'kb_counts': {key: value for key, value in value_counts.items() if 15 <= key <= 22},
+    }
+
+
 yolov8_model_path = 'models/yolov8_all5000_added.pt'
 title_image_path = 'static/title.png'
 current_id = {}
@@ -179,7 +202,7 @@ elif selected2 == "Tracking":
                 frame_window_col6 = col2.empty()
                 frame_window_col7 = col1.empty()
                 frame_window_col8 = col2.empty()
-
+                frame_counter = 0
                 for frame in get_frames_from_m3u8(st.session_state.video_url):
                     if stop_button:
                         st.session_state.clear()
@@ -267,103 +290,22 @@ elif selected2 == "Tracking":
                                     pass
                                 else :
                                     id_class[int(id)].append(int(class_num))
-                    if bar_on:
-                        with col1:
-                            if len(id_class) >= 1 :
-                                    classes = []
-                                    for class_list in id_class.values() :
-                                        if 0 in class_list and len(class_list) >= 2 :
-                                            classes.extend([x for x in class_list if x != 0])
-                                        else :
-                                            classes.extend(class_list)
+                    frame_counter += 1
+                    if frame_counter % 30 == 0:
+                        if len(id_class) >= 1:
+                            counts = generate_counts(id_class)
+                            if bar_on:
+                                with col1:
+                                    plot_bar_chart(list(counts['mc_counts'].keys()), list(counts['mc_counts'].values()), 'Motorcycle Value Counts', 'Class', 'Counts', frame_window_col3)
+                                    plot_bar_chart(list(counts['bc_counts'].keys()), list(counts['bc_counts'].values()), 'Bicycle Value Counts', 'Class', 'Counts', frame_window_col5)
+                                    plot_bar_chart(list(counts['kb_counts'].keys()), list(counts['kb_counts'].values()), 'Kickboard Value Counts', 'Class', 'Counts', frame_window_col7)
 
-                                        # 각 값의 빈도수 계산
-                                        value_counts = Counter(classes)
-                                        mc_counts = {key: value for key, value in value_counts.items() if key >= 0 and key <= 6}
-                                        bc_counts = {key: value for key, value in value_counts.items() if key >= 7 and key <= 14}
-                                        kb_counts = {key: value for key, value in value_counts.items() if key >= 15 and key <= 22}
-
-                                        # motorcycle bar chart
-                                        values = list(mc_counts.keys())
-                                        counts = list(mc_counts.values())
-                                        
-                                        fig, ax = plt.subplots()
-                                        plt.bar(values, counts)
-                                        plt.xlabel('Class')
-                                        plt.ylabel('Counts')
-                                        plt.title('Motorcycle Value Counts')
-                                        
-                                        frame_window_col3.pyplot(fig)
-
-                                        # bicycle bar chart
-                                        values = list(bc_counts.keys())
-                                        counts = list(bc_counts.values())
-                                        
-                                        fig, ax = plt.subplots()
-                                        plt.bar(values, counts)
-                                        plt.xlabel('Class')
-                                        plt.ylabel('Counts')
-                                        plt.title('Bicycle Value Counts')
-                                        
-                                        frame_window_col5.pyplot(fig)
-
-                                        # kickboard bar chart
-                                        values = list(kb_counts.keys())
-                                        counts = list(kb_counts.values())
-                                        
-                                        fig, ax = plt.subplots()
-                                        plt.bar(values, counts)
-                                        plt.xlabel('Class')
-                                        plt.ylabel('Counts')
-                                        plt.title('Kickboard Value Counts')
-                                        
-                                        frame_window_col7.pyplot(fig)
-
-                    # 두 번째 열 : pie chart
-                    if pie_on:
-                        with col2 :
-                            if len(id_class) >= 1 :
-
-                                # Vehicle 파이 차트 그리기
-                                fig, ax = plt.subplots()
-                                labels = [vehicle for vehicle in vehicle_counts.keys()]
-                                sizes = [counts for counts in vehicle_counts.values()]
-                                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-                                ax.axis('equal')  # 원이 보존되도록 설정
-                                plt.title('Vehicle Counts')
-
-                                frame_window_col2.pyplot(fig)
-
-                                # Motorcycle pie chart
-                                fig, ax = plt.subplots()
-                                labels = [vehicle for vehicle in mc_counts.keys()]
-                                sizes = [counts for counts in mc_counts.values()]
-                                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-                                ax.axis('equal')  # 원이 보존되도록 설정
-                                plt.title('Motorcycle Violation Ratio')
-
-                                frame_window_col4.pyplot(fig)
-
-                                # Bicycle pie chart
-                                fig, ax = plt.subplots()
-                                labels = [vehicle for vehicle in bc_counts.keys()]
-                                sizes = [counts for counts in bc_counts.values()]
-                                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-                                ax.axis('equal')  # 원이 보존되도록 설정
-                                plt.title('Bicycle Violation Ratio')
-
-                                frame_window_col6.pyplot(fig)
-
-                                # Kickboard pie chart
-                                fig, ax = plt.subplots()
-                                labels = [vehicle for vehicle in kb_counts.keys()]
-                                sizes = [counts for counts in kb_counts.values()]
-                                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-                                ax.axis('equal')  # 원이 보존되도록 설정
-                                plt.title('Kickboard Violation Ratio')
-
-                                frame_window_col8.pyplot(fig)
-
+                            if pie_on:
+                                with col2:
+                                    plot_pie_chart([vehicle for vehicle in vehicle_counts.keys()], [counts for counts in vehicle_counts.values()], 'Vehicle Counts', frame_window_col2)
+                                    plot_pie_chart([vehicle for vehicle in counts['mc_counts'].keys()], [counts for counts in counts['mc_counts'].values()], 'Motorcycle Violation Ratio', frame_window_col4)
+                                    plot_pie_chart([vehicle for vehicle in counts['bc_counts'].keys()], [counts for counts in counts['bc_counts'].values()], 'Bicycle Violation Ratio', frame_window_col6)
+                                    plot_pie_chart([vehicle for vehicle in counts['kb_counts'].keys()], [counts for counts in counts['kb_counts'].values()], 'Kickboard Violation Ratio', frame_window_col8)
 
             if 'stop_button' in globals() and stop_button:
                 st.session_state.clear()
