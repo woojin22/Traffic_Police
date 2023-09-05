@@ -99,8 +99,7 @@ def line(a, b, c, d, image):
         x2, y2 = start_point[0], height - 1
     return x2, y2
 
-yolov5_model_path = 'models/yolov5_all800_best.pt'
-yolov8_model_path = 'models/val_epoch100.pt'
+yolov8_model_path = 'models/yolov8_all5000_added.pt'
 title_image_path = 'static/title.png'
 current_id = {}
 same_id = []
